@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<html>
+<body>
+<h1>Checkout MP</h1>
+<p>Exemplo de integração do Checkout Mercado Pago.</p>
+<script src="ejs.js"></script>  
+<form action="/processar_pagamento" method="POST">
+  <script
+   src="https://www.mercadopago.com.br/integrations/v1/web-payment-checkout.js"
+   data-preference-id='<%= global.id %>'>
+  </script>
+</form>
+</body>
+</html>
