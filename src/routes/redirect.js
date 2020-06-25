@@ -20,9 +20,9 @@ module.exports = function(app) {
         }
       ],
       "back_urls": {
-        "success": "https://conteudo.mercadopago.com.br/",
-        "failure": "https://conteudo.mercadopago.com.br/",
-        "pending": "https://conteudo.mercadopago.com.br/"
+        "success": "https://developers.mercadopago.com/",
+        "failure": "https://developers.mercadopago.com/",
+        "pending": "https://developers.mercadopago.com/"
     },
     "auto_return": "approved",
     }
