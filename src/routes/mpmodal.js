@@ -1,19 +1,9 @@
-const porta = 3000
+module.exports = function(app) {
 
-var express = require('express');
-var app = express();
+    // SDK de Mercado Pago
+    const mercadopago = require ('mercadopago');
 
-app.set('view engine', 'ejs');
-app.use(express.json());
-
-app.listen(porta,function(){
-  console.log(`Servidor executando na porta: ${porta}.`)
-});
-
-// SDK de Mercado Pago
-const mercadopago = require ('mercadopago');
-
-app.get('/',function(req,res){
+    app.get('/modal',function(req,res){
 
     // Configura credenciais
     mercadopago.configure({
@@ -34,14 +24,9 @@ app.get('/',function(req,res){
     ;
     mercadopago.preferences.create(preference).then(function(response){
       global.id = response.body.id;
-      res.render("./index", {prefResponse:response.body});
+      res.render("./modal", {prefResponse:response.body});
     }).catch(function(error){
       console.log(error);
     });
-});
-
-
-app.post('/processar_pagamento', function (req, res) {
-    //Retorno
-    res.send("Pagamento processado");
-});
+ })
+};
