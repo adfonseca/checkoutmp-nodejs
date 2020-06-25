@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html>
+<body>
+
+<script src="ejs.js"></script> 
+
+<!--Formulário de dados do cartão-->
+<form action="/custom" method="post" id="pay" name="pay" >
+    <fieldset>
+        <ul>
+            <li>
+                <label for="email">Email</label>
+                <input type="email" id="email" name="email" placeholder="your email"/>
+            </li>
+            <li>
+                <label for="cardNumber">Credit card number:</label>
+                <input type="text" id="cardNumber" data-checkout="cardNumber" value="5031755734530604"/>
+            </li>
+            <li>
+                <label for="securityCode">Security code:</label>
+                <input type="text" id="securityCode" data-checkout="securityCode" value="123"/>
+            </li>
+            <li>
+                <label for="cardExpirationMonth">Expiration month:</label>
+                <input type="text" id="cardExpirationMonth" data-checkout="cardExpirationMonth" value="11"/>
+            </li>
+            <li>
+                <label for="cardExpirationYear">Expiration year:</label>
+                <input type="text" id="cardExpirationYear" data-checkout="cardExpirationYear" value="2025"/>
+            </li>
+            <li>
+                <label for="cardholderName">Card holder name:</label>
+                <input type="text" id="cardholderName" data-checkout="cardholderName" value="APRO" />
+            </li>
+            <li>
+                <label for="docType">Document type:</label>
+                <select id="docType" data-checkout="docType"></select>           
+             </li>
+            <li>
+                <label for="docNumber">Document number:</label>
+                <input type="text" id="docNumber" data-checkout="docNumber" value="19119119100"/>
+            </li>
+          
+          <li>
+               <label for="installments">Installments:</label>
+               <select id="installments" class="form-control" name="installments"></select>
+          </li>
+        </ul>
+        <input type="hidden" name="title" value="Meu produto"/> <!-- acrescentado os inputs de descricao e amount -->
+        <input type="hidden" name="amount" id="amount" value="20"/>
+        <input type="hidden" name="paymentMethodId" />
+        <input type="submit" value="Pay!" />
+    </fieldset>
+</form>
+
+
+<!--importação da biblioteca js do Mercado Pago para que os dados do cartão do cliente não cheguem ao servidor da aplicação--> 
+<script src="https://secure.mlstatic.com/sdk/javascript/v1/mercadopago.js"></script>
+
+<script type="text/javascript">
+
+window.Mercadopago.setPublishableKey("TEST-4da1d884-39b8-4e2d-a092-3c4c59f0ba09");
+  
+window.Mercadopago.getIdentificationTypes(); //Obtenha o tipo de documento  
+
+function addEvent(to, type, fn){ //Função que estava faltando e que lista os eventos
+        if(document.addEventListener){
+            to.addEventListener(type, fn, false);
+        } else if(document.attachEvent){
+            to.attachEvent('on'+type, fn);
+        } else {
+            to['on'+type] = fn;
+        }  
+    };  
+
+//********************** adicionado eventos que irão chamar a função guessingPaymentMethod
+addEvent(document.querySelector('#cardNumber'), 'keyup', guessingPaymentMethod);
+addEvent(document.querySelector('#cardNumber'), 'change', guessingPaymentMethod);
+//**********************
+ 
+
+//Obtenha o meio de pagamento do cartão
+
+
+function getBin() {
+const cardnumber = document.getElementById("cardNumber");
+return cardnumber.value.substring(0,6); //acrescentado o campo value que falta na documentação.
+}
+
+function guessingPaymentMethod(event) {
+    var bin = getBin();
+
+    if (event.type == "keyup") {
+        if (bin.length >= 6) {
+            window.Mercadopago.getPaymentMethod({
+                "bin": bin
+            }, setPaymentMethodInfo);
+        }
+    } else {
+        setTimeout(function() {
+            if (bin.length >= 6) {
+                window.Mercadopago.getPaymentMethod({
+                    "bin": bin
+                }, setPaymentMethodInfo);
+            }
+        }, 100);
+    }
+};
+
+function setPaymentMethodInfo(status, response) {
+    if (status == 200) {
+        const paymentMethodElement = document.querySelector('input[name=paymentMethodId]');
+
+        if (paymentMethodElement) {
+            paymentMethodElement.value = response[0].id;
+        } else {
+            const input = document.createElement('input');
+            input.setAttribute('name', 'paymentMethodId');
+            input.setAttribute('type', 'hidden');
+            input.setAttribute('value', response[0].id);     
+
+            form.appendChild(input);  
+        }
+
+//********************** adicionado função que captura as parcelas conforme o método de pagamento
+        Mercadopago.getInstallments({
+        "bin": getBin(),
+        "amount": parseFloat(document.querySelector('#amount').value),
+        }, setInstallmentInfo);     
+//**********************
+      
+    } else {
+        alert(`payment method info error: ${response}`);  
+    }
+  
+};
+ 
+ //********************** adicionado função que gera as parcelas
+
+  function setInstallmentInfo(status, response) {
+            var selectorInstallments = document.querySelector("#installments"),
+            fragment = document.createDocumentFragment();
+            selectorInstallments.options.length = 0;
+
+            if (response.length > 0) {
+                var option = new Option("Escolha...", '-1'),
+                payerCosts = response[0].payer_costs;
+                fragment.appendChild(option);
+                
+                for (var i = 0; i < payerCosts.length; i++) {
+                    fragment.appendChild(new Option(payerCosts[i].recommended_message, payerCosts[i].installments));
+                }
+                
+                selectorInstallments.appendChild(fragment);
+                selectorInstallments.removeAttribute('disabled');
+            }
+        };
+  
+//**********************
+
+
+//Capture os dados do cartã para gerar o token
+
+doSubmit = false;
+  
+addEvent(document.querySelector('#pay'), 'submit', doPay);
+function doPay(event){
+    event.preventDefault();
+    if(!doSubmit){
+        var $form = document.querySelector('#pay');
+
+        window.Mercadopago.createToken($form, sdkResponseHandler); // The function "sdkResponseHandler" is defined below
+
+        return false;
+    }
+};
+
+function sdkResponseHandler(status, response) {
+    if (status != 200 && status != 201) {
+        alert("verify filled data");
+    }else{
+        var form = document.querySelector('#pay');
+        var card = document.createElement('input');
+        card.setAttribute('name', 'token');
+        card.setAttribute('type', 'text');
+        card.setAttribute('value', response.id);
+        form.appendChild(card);
+        doSubmit=true;
+        form.submit();
+    }
+};
+    
+</script>
+
+</body>
+</html>
