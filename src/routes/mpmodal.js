@@ -7,7 +7,7 @@ module.exports = function(app) {
 
     // Configura credenciais
     mercadopago.configure({
-      access_token: 'TEST-1760602428834953-030413-978bd0671d97644d6ac4fb76068d5685-532818857'
+      access_token: 'ACCESS_TOKEN'
     });
 
     // Cria um objeto de preferência
